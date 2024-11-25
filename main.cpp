@@ -12,15 +12,19 @@ class Ball {
 public:
     Sound cpuSound;
     Sound scoreSound;                                  //Sound variables
+    Texture2D texture_ball;
     float x, y;
     int speed_x, speed_y;
     int radius;
-    ~Ball (){                                           //Destructor to delete the sounds
+    ~Ball (){                                           //Destructor to delete the sounds/texture
         UnloadSound(scoreSound);
         UnloadSound(cpuSound);
+        UnloadTexture(texture_ball);
     }
-    void Draw() {                                      //cirlce color
-        DrawCircle(x, y, radius, Yellow);  
+    void Draw() {                                      //cirlce texture (Yarn ball)
+        Rectangle sourceRec = { 0,0,texture_ball.width,texture_ball.height };
+        Rectangle ballRect = { x - radius, y - radius, radius * 2, radius * 2 };
+        DrawTexturePro(texture_ball, sourceRec, ballRect, Vector2{0,0}, 0, WHITE); 
     }
 
     void Update() {
@@ -112,13 +116,14 @@ int main() {
     InitWindow(screenWidth, screenHeight, "My Pong Game!");
     InitAudioDevice();
     SetTargetFPS(60);
-    ball.radius = 20;
+    ball.radius = 40;
     ball.x = screenWidth / 2;
     ball.y = screenHeight / 2;
-    ball.speed_x = 7;
-    ball.speed_y = 7;
-    ball.scoreSound = LoadSound("resources/YayKidsScreaming.wav");              //Adding sounds for winning
+    ball.speed_x = 8;                                                  //Speed of ball
+    ball.speed_y = 8;
+    ball.scoreSound = LoadSound("resources/yippee.mp3");              //Adding sounds for winning
     ball.cpuSound = LoadSound("resources/aww.mp3");                             //Adding sounds for losing
+    ball.texture_ball = LoadTexture("resources/yarn.png");                      //Adding the texture for ball
 
     player.width = 25;
     player.height = 120;
@@ -132,8 +137,10 @@ int main() {
     cpu.y = screenHeight / 2 - cpu.height / 2;
     cpu.speed = 6;
 
+
     Texture2D texture = LoadTexture("resources/PinkBackground.png");            //Adding image in, only png images MYCODE
     Sound sound = LoadSound("resources/meow.ogg");                             //Adding sound to ball
+    Texture2D texture_ball = LoadTexture("resources/Yarn.PNG");
       
     float scaleX = (float)screenWidth / texture.width;    //Depending on Image MYCODE
     float scaleY = (float)screenHeight / texture.height;  //MYCODE
@@ -188,6 +195,7 @@ int main() {
     }
     UnloadSound(sound);                                 // Playing sound
     UnloadTexture(texture);
+    UnloadTexture(ball.texture_ball);
     CloseAudioDevice();
     CloseWindow();
     return 0;
