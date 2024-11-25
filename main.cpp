@@ -3,8 +3,6 @@
 #include <raymath.h>
 using namespace std;
 
-Color Yellow = Color{ 243, 213, 91, 255 };             //Ball color
-
 int player_score = 0;
 int cpu_score = 0;
 
