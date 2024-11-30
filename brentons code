@@ -1,0 +1,314 @@
+#include <iostream>
+#include <raylib.h>
+#include <raymath.h>
+
+using namespace std;
+
+Color Yellow = Color{ 243, 213, 91, 255 };           
+
+int player_score = 0;
+int cpu_score = 0;
+
+class Ball {
+public:
+    Sound cpuSound1;
+    Sound cpuSound2;
+    Sound scoreSound1;
+    Sound scoreSound2;
+    Sound bumpSound;
+    float x, y;
+    int speed_x, speed_y;
+    int radius;
+    Texture2D ballTexture;
+    float rotationAngle = 0.0f;
+    float playerScoreTimer = 0.0f;
+    float cpuScoreTimer = 0.0f;
+    const float scoreDisplayTime = 1.0f;
+
+    ~Ball() {
+        UnloadSound(scoreSound1);
+        UnloadSound(scoreSound2);
+        UnloadSound(cpuSound1);
+        UnloadSound(cpuSound2);
+        UnloadSound(bumpSound);
+        UnloadTexture(ballTexture);
+    }
+
+    void Draw() {
+        Rectangle sourceRec = { 0.0f, 0.0f, (float)ballTexture.width, (float)ballTexture.height };
+        Rectangle ballRect = { x - radius, y - radius, radius * 2, radius * 2 };
+
+        DrawTexturePro(ballTexture, sourceRec, ballRect, Vector2{ (float)radius, (float)radius }, rotationAngle, WHITE);
+    }
+
+    void Update() {
+        x += speed_x;
+        y += speed_y;
+
+
+        rotationAngle += 2.0f;
+
+        if (y + radius >= GetScreenHeight() || y - radius <= 0) {
+            speed_y *= -1;
+            PlaySound(bumpSound);
+        }
+
+        if (x + radius >= GetScreenWidth()) {  
+            cpu_score++;
+            PlaySound(cpuSound1);
+            PlaySound(cpuSound2);
+            ResetBall();
+            cpuScoreTimer = scoreDisplayTime;  
+        }
+
+        if (x - radius <= 0) {  
+            player_score++;
+            PlaySound(scoreSound1);
+            PlaySound(scoreSound2);
+            ResetBall();
+            playerScoreTimer = scoreDisplayTime;  
+        }
+
+    }
+
+    void ResetBall() {
+        x = GetScreenWidth() / 2;
+        y = GetScreenHeight() / 2;
+
+        int speed_choices[2] = { -1, 1 };
+        speed_x *= speed_choices[GetRandomValue(0, 1)];
+        speed_y *= speed_choices[GetRandomValue(0, 1)];
+    }
+};
+
+
+
+class Paddle {                                      
+protected:
+    void LimitMovement() {
+        if (y <= 0) {
+            y = 0;
+        }
+        if (y + height >= GetScreenHeight()) {
+            y = GetScreenHeight() - height;
+        }
+    }
+
+public:
+    float x, y;
+    float width, height;
+    int speed;
+    Texture2D paddleTexture;
+    float textureOffsetX = 20;
+    float textureOffsetY = 20;
+
+    void Draw() {
+        float scaleX = (width * 4.0f) / paddleTexture.width;
+        float scaleY = (height * 4.0f) / paddleTexture.height;
+        float scale = (scaleX < scaleY) ? scaleX : scaleY;
+
+        float textureX = x - (paddleTexture.width * scale - width) / 2 + textureOffsetX;
+        float textureY = y - (paddleTexture.height * scale - height) / 2 + textureOffsetY;
+
+        textureX = Clamp(textureX, 0.0f, (float)(GetScreenWidth() - paddleTexture.width * scale));
+        textureY = Clamp(textureY, 0.0f, (float)(GetScreenHeight() - paddleTexture.height * scale));
+
+        DrawTextureEx(paddleTexture, Vector2{ textureX, textureY }, 0.0f, scale, WHITE);
+    }
+
+    void Update() {
+        if (IsKeyDown(KEY_UP)) {
+            y = y - speed;
+        }
+        if (IsKeyDown(KEY_DOWN)) {
+            y = y + speed;
+        }
+        LimitMovement();
+    }
+};
+
+class CpuPaddle : public Paddle {                       
+public:
+    void Update(int ball_y) {
+        if (y + height / 2 > ball_y) {
+            y = y - speed;
+        }
+        if (y + height / 2 <= ball_y) {
+            y = y + speed;
+        }
+        LimitMovement();
+    }
+};
+
+Ball ball;
+Paddle player;
+CpuPaddle cpu;
+
+bool Paused = false;
+
+
+float playerAvatarChangeTimer = 0.0f;
+float cpuAvatarChangeTimer = 0.0f;
+const float avatarChangeDuration = 1.0f;  
+
+int main() {
+    cout << "Starting the game" << endl;
+    const int screenWidth = 1280;
+    const int screenHeight = 800;
+    InitWindow(screenWidth, screenHeight, "My Pong Game!");
+    InitAudioDevice();
+    SetTargetFPS(60);
+    ball.radius = 32;
+    ball.x = screenWidth / 2;
+    ball.y = screenHeight / 2;
+    ball.speed_x = 7;
+    ball.speed_y = 7;
+    Music music = LoadMusicStream("assets/music new.mp3");
+    PlayMusicStream(music);
+    SetMusicVolume(music, 0.5f);
+    ball.scoreSound1 = LoadSound("assets/meowwin.wav");              
+    ball.scoreSound2 = LoadSound("assets/score.mp3");
+    ball.cpuSound1 = LoadSound("assets/meowlose.wav");            
+    ball.cpuSound2 = LoadSound("assets/score.mp3");
+    ball.bumpSound = LoadSound("assets/bump.mp3");
+
+    player.width = 30;
+    player.height = 120;
+    player.x = screenWidth - player.width - 10;
+    player.y = screenHeight / 2 - player.height / 2;
+    player.speed = 6;
+    player.paddleTexture = LoadTexture("assets/playerCatPaddle.png");
+
+    cpu.height = 120;
+    cpu.width = 30;
+    cpu.x = 10;
+    cpu.y = screenHeight / 2 - cpu.height / 2;
+    cpu.speed = 6;
+    cpu.paddleTexture = LoadTexture("assets/cpuCatPaddle.png");
+
+    ball.ballTexture = LoadTexture("assets/yarnBall.png");
+
+    Texture2D texture = LoadTexture("assets/PinkBackground.png");        
+    Texture2D playerAvatar = LoadTexture("assets/playerCat.png");
+    Texture2D cpuAvatar = LoadTexture("assets/cpuCat.png");
+    Texture2D playerScoreAnim = LoadTexture("assets/playerCatScore.png");
+    Texture2D cpuScoreAnim = LoadTexture("assets/cpuCatScore.png");
+    Sound sound1 = LoadSound("assets/pop1.mp3");                          
+    Sound sound2 = LoadSound("assets/pop2.mp3");
+
+    float scaleX = (float)screenWidth / texture.width;    
+    float scaleY = (float)screenHeight / texture.height; 
+
+    float scale = (scaleX < scaleY) ? scaleX : scaleY;  
+
+    float cpuScoreTimer = 0.0f;
+    float playerScoreTimer = 0.0f;
+
+    while (WindowShouldClose() == false) {
+        BeginDrawing();
+        UpdateMusicStream(music);
+
+        if (GetMusicTimePlayed(music) >= GetMusicTimeLength(music)) {
+            PlayMusicStream(music);
+        }
+
+        if (IsKeyPressed(KEY_SPACE)) {                 
+            Paused = !Paused;
+        }
+
+        if (!Paused) {                                    
+
+            ball.Update();
+            player.Update();
+            cpu.Update(ball.y);
+
+
+            if (CheckCollisionCircleRec({ ball.x, ball.y }, ball.radius, { player.x, player.y, player.width, player.height })) {
+                ball.speed_x *= -1;
+                PlaySound(sound2);  
+            }
+
+            if (CheckCollisionCircleRec({ ball.x, ball.y }, ball.radius, { cpu.x, cpu.y, cpu.width, cpu.height })) {
+                ball.speed_x *= -1;
+                PlaySound(sound1);  
+            }
+        }
+
+        ClearBackground(WHITE);                        
+        DrawRectangle(screenWidth / 2, 0, screenWidth / 2, screenHeight, WHITE);
+
+        Rectangle sourceRec = { 0.0f, 0.0f, (float)texture.width, (float)texture.height }; 
+
+        Rectangle destRec = {                             
+            (screenWidth - texture.width * scale) / 2,   
+            (screenHeight - texture.height * scale) / 2, 
+            texture.width * scale,                       
+            texture.height * scale                       
+        };
+        Vector2 origin = { 0,0 };                        
+
+        DrawTexturePro(texture, sourceRec, destRec, origin, 0.0f, WHITE);
+        cpu.Draw();
+        player.Draw();
+        ball.Draw();
+
+        if (playerAvatarChangeTimer > 0.0f) {
+            playerAvatarChangeTimer -= GetFrameTime();
+        }
+
+        if (cpuAvatarChangeTimer > 0.0f) {
+            cpuAvatarChangeTimer -= GetFrameTime();
+        }
+
+
+        if (playerScoreTimer > 0.0f) {
+            DrawText("+1", screenWidth - 150, 20, 40, GREEN);
+            playerScoreTimer -= GetFrameTime();
+            if (playerAvatarChangeTimer <= 0.0f) {
+                playerAvatarChangeTimer = avatarChangeDuration;  
+            }
+        }
+
+        if (cpuScoreTimer > 0.0f) {
+            DrawText("+1", screenWidth / 4 - 100, 20, 40, GREEN);
+            cpuScoreTimer -= GetFrameTime();
+            if (cpuAvatarChangeTimer <= 0.0f) {
+                cpuAvatarChangeTimer = avatarChangeDuration;  
+            }
+        }
+
+
+        DrawText(TextFormat("%i", cpu_score), screenWidth / 4 - 20, 20, 80, BLACK);
+        DrawTextureEx(cpuAvatar, Vector2{ screenWidth / 4.5 - 130, 20 }, 0.0f, 0.3f, WHITE);
+        DrawText(TextFormat("%i", player_score), 3 * screenWidth / 4 - 20, 20, 80, BLACK);
+        DrawTextureEx(playerAvatar, Vector2{ screenWidth / 4 + 680, 20 }, 0.0f, 0.3f, WHITE);
+
+        if (playerAvatarChangeTimer > 0.0f) {
+            DrawTextureEx(playerScoreAnim, Vector2{ screenWidth / 4 + 680, 20 }, 0.0f, 0.3f, WHITE);
+        }
+        else {
+            DrawTextureEx(playerAvatar, Vector2{ screenWidth / 4 + 680, 20 }, 0.0f, 0.3f, WHITE);
+        }
+
+        if (cpuAvatarChangeTimer > 0.0f) {
+            DrawTextureEx(cpuScoreAnim, Vector2{ screenWidth / 4.5 - 130, 20 }, 0.0f, 0.3f, WHITE);
+        }
+        else {
+            DrawTextureEx(cpuAvatar, Vector2{ screenWidth / 4.5 - 130, 20 }, 0.0f, 0.3f, WHITE);
+        }
+
+
+        if (Paused) {
+            DrawText("Paused", 490, 350, 80, BLACK);
+        }
+
+        EndDrawing();
+    }
+    UnloadSound(sound1);
+    UnloadSound(sound2);
+    UnloadTexture(texture);
+    UnloadMusicStream(music);
+    CloseAudioDevice();
+    CloseWindow();
+    return 0;
+}
