@@ -12,34 +12,37 @@ public:
     Sound scoreSound;                                  //Sound variables
     Texture2D texture_ball;
     float x, y;
+    float rotation = 0.0;
     int speed_x, speed_y;
     int radius;
+   
     ~Ball (){                                           //Destructor to delete the sounds/texture
         UnloadSound(scoreSound);
         UnloadSound(cpuSound);
         UnloadTexture(texture_ball);
     }
-    void Draw() {                                      //cirlce texture (Yarn ball)
-        Rectangle sourceRec = { 0,0,texture_ball.width,texture_ball.height };
+    void Draw() {                                      //rotation texture (Yarn ball)
+        Rectangle sourceRec = { -radius,-radius,texture_ball.width,texture_ball.height };
         Rectangle ballRect = { x - radius, y - radius, radius * 2, radius * 2 };
-        DrawTexturePro(texture_ball, sourceRec, ballRect, Vector2{0,0}, 0, WHITE); 
+        DrawTexturePro(texture_ball, sourceRec, ballRect, Vector2{(float)radius,(float)radius}, rotation, WHITE); 
     }
 
     void Update() {
         x += speed_x;
         y += speed_y;
+        rotation += speed_x;
 
-        if (y + radius >= GetScreenHeight() || y - radius <= 0) {
+        if (y >= GetScreenHeight() || y - radius * 2 <= 0) {
             speed_y *= -1;
         }
         // Cpu wins
-        if (x + radius >= GetScreenWidth()) {
+        if (x >= GetScreenWidth()) {
             cpu_score++;
             PlaySound(cpuSound);                 //Adding sound
             ResetBall();
         }
 
-        if (x - radius <= 0) {
+        if (x - radius * 2 <= 0) {
             player_score++;
             PlaySound(scoreSound);                  //Adding sound (Works)
             ResetBall();
@@ -71,9 +74,17 @@ public:
     float x, y;
     float width, height;
     int speed;
+    Texture2D texture_paddle;
+
+    ~Paddle() {
+        UnloadTexture(texture_paddle);
+    }
 
     void Draw() {
-        DrawRectangleRounded(Rectangle{ x, y, width, height }, 0.8, 0, BLACK);  //Paddle color
+        //DrawRectangleRounded(Rectangle{ x, y, width, height }, 0.8, 0, BLACK);  //Paddle color
+        Rectangle sourceRec = { 0,0, texture_paddle.width,texture_paddle.height };
+        Rectangle ballRect = { x, y, width, height };
+        DrawTexturePro(texture_paddle, sourceRec, ballRect, Vector2{ 0,0 }, 0, WHITE);
     }
 
     void Update() {
@@ -123,22 +134,23 @@ int main() {
     ball.cpuSound = LoadSound("resources/aww.mp3");                             //Adding sounds for losing
     ball.texture_ball = LoadTexture("resources/yarn.png");                      //Adding the texture for ball
 
-    player.width = 25;
-    player.height = 120;
+    player.width = 45;
+    player.height = 150;
     player.x = screenWidth - player.width - 10;
     player.y = screenHeight / 2 - player.height / 2;
     player.speed = 6;
+    player.texture_paddle = LoadTexture("resources/cat_paw_pixel.png");
 
-    cpu.height = 120;
-    cpu.width = 25;
+    cpu.height = 150;
+    cpu.width = 45;
     cpu.x = 10;
     cpu.y = screenHeight / 2 - cpu.height / 2;
     cpu.speed = 6;
+    cpu.texture_paddle = LoadTexture("resources/cat_paw_pixel.png");
 
 
     Texture2D texture = LoadTexture("resources/PinkBackground.png");            //Adding image in, only png images MYCODE
     Sound sound = LoadSound("resources/meow.ogg");                             //Adding sound to ball
-    Texture2D texture_ball = LoadTexture("resources/Yarn.PNG");
       
     float scaleX = (float)screenWidth / texture.width;    //Depending on Image MYCODE
     float scaleY = (float)screenHeight / texture.height;  //MYCODE
@@ -156,13 +168,13 @@ int main() {
             ball.Update();
             player.Update();
             cpu.Update(ball.y);
-            // Checking for collisions
-            if (CheckCollisionCircleRec({ ball.x, ball.y }, ball.radius, { player.x, player.y, player.width, player.height })) {
+                                                            // Checking for collisions (rotational as well)
+            if (CheckCollisionCircleRec({ ball.x - ball.radius, ball.y - ball.radius }, ball.radius, { player.x, player.y, player.width, player.height })) {
                 ball.speed_x *= -1;
                 PlaySound(sound);                        // Playing sound
             }
 
-            if (CheckCollisionCircleRec({ ball.x, ball.y }, ball.radius, { cpu.x, cpu.y, cpu.width, cpu.height })) {
+            if (CheckCollisionCircleRec({ ball.x - ball.radius, ball.y - ball.radius }, ball.radius, { cpu.x, cpu.y, cpu.width, cpu.height })) {
                 ball.speed_x *= -1;
                 PlaySound(sound);                        // Playing Sound
             }
