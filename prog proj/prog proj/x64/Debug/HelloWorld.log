@@ -1,0 +1,10 @@
+﻿  Ball.cpp
+C:\Users\brent\source\repos\HelloWorld\HelloWorld\Ball.cpp(16,56): warning C4838: conversion from 'int' to 'float' requires a narrowing conversion
+C:\Users\brent\source\repos\HelloWorld\HelloWorld\Ball.cpp(16,56): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\Users\brent\source\repos\HelloWorld\HelloWorld\Ball.cpp(16,68): warning C4838: conversion from 'int' to 'float' requires a narrowing conversion
+C:\Users\brent\source\repos\HelloWorld\HelloWorld\Ball.cpp(16,68): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+C:\Users\brent\source\repos\HelloWorld\HelloWorld\Ball.cpp(48,26): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\brent\source\repos\HelloWorld\HelloWorld\Ball.cpp(49,27): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+  HelloWorld.vcxproj -> C:\Users\brent\source\repos\HelloWorld\x64\Debug\HelloWorld.exe
+  'pwsh.exe' is not recognized as an internal or external command,
+  operable program or batch file.
